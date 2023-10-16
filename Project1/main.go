@@ -34,7 +34,7 @@ func main() {
 	//
 	//SJFPrioritySchedule(os.Stdout, "Priority", processes)
 	//
-	//RRSchedule(os.Stdout, "Round-robin", processes)
+	RRSchedule(os.Stdout, "Round-robin", processes)
 }
 
 func openProcessingFile(args ...string) (*os.File, func(), error) {
@@ -128,11 +128,102 @@ func FCFSSchedule(w io.Writer, title string, processes []Process) {
 }
 
 //func SJFPrioritySchedule(w io.Writer, title string, processes []Process) { }
+/*
+For sjfp we have priority assigned assigned for each job, in our case its the fourth column of our csv file that defines the priority and we are to use that in order to pick which job to choose first, which would be the one listed as number 1 priority. 
+*/
+
 //
 //func SJFSchedule(w io.Writer, title string, processes []Process) { }
-//
-//func RRSchedule(w io.Writer, title string, processes []Process) { }
+/* for this process we select the waiting process with the smallest execution time to be the next one. For implementation we would sort the processes based on their arrival time, then we would pick the process with min burst time, then repeat this cylcle until all is complete. 
+*/
 
+/*
+I did not manage to get function corectly to work, but I do understand the concept of round robin. 
+So round robin allocated each task an equal amount of CPU time, the number we want to allocate we write as the quantum. 
+With this essentially have each processs take turns, within the quantum time and we subtract it from its burst time. We then move on to the next process and repeat the same thign until a task allocated CPU time is done. Essentially going around in a circle until everything is complete. The implementation I tried to use is the use of arrays to keep track of the burst times as we went all through the array, then keep reusing it until we reach that our remaing burst for each process is complete indicating that we are done. 
+*/
+
+func RRSchedule(w io.Writer, title string, processes []Process) { 	
+    n := len(processes)
+    var (
+        totalWait       float64 = 0
+        quantum int64 = 2;
+        totalTurnaround float64 = 0
+        waitingTime     = make([]int64, n)
+        schedule        = make([][]string, n)
+        gantt           = make([]TimeSlice, 0)
+        t int64 = 0
+    )
+
+    remBurst := make([]int64, n)
+    for i := 0; i < n; i++ {
+        remBurst[i] = processes[i].BurstDuration
+    }
+
+    for {
+        done := true
+        for i := 0; i < n; i++ {
+            if remBurst[i] > 0 {
+                done = false
+                if remBurst[i] > quantum {
+                    t += quantum
+                    remBurst[i] -= quantum
+                } else {
+                    t += remBurst[i]
+                    waitingTime[i] = t - processes[i].BurstDuration
+                    remBurst[i] = 0
+                }
+            }
+        }
+        if done {
+            break
+        }
+    }
+
+    lastCompletion := int64(0)
+    for i := 0; i < n; i++ {
+        start := maxInt64(lastCompletion, processes[i].ArrivalTime)
+        waitingTime[i] = start - processes[i].ArrivalTime
+        completion := start + processes[i].BurstDuration
+        turnaround := processes[i].BurstDuration + waitingTime[i]
+
+        totalWait += float64(waitingTime[i])
+        totalTurnaround += float64(turnaround)
+        lastCompletion = completion
+
+        schedule[i] = []string{
+            fmt.Sprint(processes[i].ProcessID),
+            fmt.Sprint(processes[i].Priority),
+            fmt.Sprint(processes[i].BurstDuration),
+            fmt.Sprint(processes[i].ArrivalTime),
+            fmt.Sprint(waitingTime[i]),
+            fmt.Sprint(turnaround),
+            fmt.Sprint(completion),
+        }
+
+        gantt = append(gantt, TimeSlice{
+            PID:   processes[i].ProcessID,
+            Start: start,
+            Stop:  completion,
+        })
+    }
+
+    count := float64(len(processes))
+    aveWait := totalWait / count
+    aveTurnaround := totalTurnaround / count
+    aveThroughput := count / float64(lastCompletion)
+
+    outputTitle(w, title)
+    outputGantt(w, gantt)
+    outputSchedule(w, schedule, aveWait, aveTurnaround, aveThroughput)
+}
+
+func maxInt64(a, b int64) int64 {
+    if a > b {
+        return a
+    }
+    return b
+}
 //endregion
 
 //region Output helpers
