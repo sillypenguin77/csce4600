@@ -87,6 +87,14 @@ func handleInput(w io.Writer, input string, exit chan<- struct{}) error {
 			return fmt.Errorf("sh: missing script argument")
 		}
 		return builtins.Shell(args[0])
+	case "bash":
+		if len(args) == 0 {
+			return fmt.Errorf("bash: missing script argument")
+		}
+		return builtins.Bash(args[0])
+	case "echo":
+		return builtins.Echo(w, args...)
+	
 	}
 
 	return executeCommand(name, args...)
