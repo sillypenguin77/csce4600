@@ -9,7 +9,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/jh125486/CSCE4600/Project2/builtins"
+	"github.com/sillypenguin77/CSCE4600/Project2/builtins"
 )
 
 func main() {
@@ -81,6 +81,12 @@ func handleInput(w io.Writer, input string, exit chan<- struct{}) error {
 	case "exit":
 		exit <- struct{}{}
 		return nil
+	case "sh":
+		// Check if the user provided a filename after "sh"
+		if len(args) == 0 {
+			return fmt.Errorf("sh: missing script argument")
+		}
+		return builtins.Shell(args[0])
 	}
 
 	return executeCommand(name, args...)
