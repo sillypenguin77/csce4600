@@ -94,9 +94,13 @@ func handleInput(w io.Writer, input string, exit chan<- struct{}) error {
 		return builtins.Bash(args[0])
 	case "echo":
 		return builtins.Echo(w, args...)
-	
+	case "pwd":
+		return builtins.Pwd(w)
+	case "logout":
+		builtins.Logout()
+	case "alloc":
+		builtins.Alloc()
 	}
-
 	return executeCommand(name, args...)
 }
 
